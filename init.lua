@@ -44,6 +44,7 @@ vim.opt.timeoutlen = 300
 vim.opt.undofile = true
 vim.opt.updatetime = 250
 vim.opt.wrap = false
+vim.g.zig_fmt_autosave = 0
 
 vim.g.have_nerd_font = true
 
@@ -73,6 +74,9 @@ vim.keymap.set('n', '<C-left>', '<C-w><C-h>', { desc = 'Move focus to the left w
 vim.keymap.set('n', '<C-right>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-down>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-up>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<leader>f', function()
+  require('conform').format { async = true, lsp_fallback = true }
+end, { desc = '[F]ormat buffer' })
 
 -- [[ Basic Autocommands ]]
 vim.api.nvim_create_autocmd('TextYankPost', {
@@ -222,7 +226,19 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      {
+        'j-hui/fidget.nvim',
+        config = function()
+          require('fidget').setup {
+            integration = {
+              ['nvim-tree'] = {
+                enable = false,
+              },
+            },
+          }
+        end,
+        opts = {},
+      },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -282,7 +298,6 @@ require('lazy').setup({
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
       local servers = {
-        pyright = {},
         rust_analyzer = {
           settings = {
             ['rust-analyzer'] = {
@@ -296,7 +311,7 @@ require('lazy').setup({
             },
           },
         },
-        tsserver = {},
+        vtsls = {},
         lua_ls = {
           settings = {
             Lua = {
@@ -325,45 +340,51 @@ require('lazy').setup({
           require('lspconfig')[server_name].setup(server)
         end,
         ['rust_analyzer'] = function() end,
+        clangd = function() end,
+        zls = function() end,
       }
 
       require('lspconfig').nil_ls.setup {}
+      require('lspconfig').clangd.setup {}
+      require('lspconfig').zls.setup {}
     end,
   },
 
   { -- Autoformat
     'stevearc/conform.nvim',
+    config = function()
+      require('conform').setup {
+        log_level = vim.log.levels.DEBUG,
+        notify_on_error = true,
+        format_after_save = function(bufnr)
+          local disable_filetypes = { c = true, cpp = true }
+          return {
+            timeout_ms = 500,
+            lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
+          }
+        end,
+        formatters_by_ft = {
+          lua = { 'stylua' },
+          nix = { 'nixfmt' },
+          html = { 'prettierd', 'prettier', stop_after_first = true },
+          css = { 'prettierd', 'prettier', stop_after_first = true },
+          javascript = { 'prettierd', 'prettier', stop_after_first = true },
+          typescript = { 'prettierd', 'prettier', stop_after_first = true },
+          javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+          typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+          json = { 'prettierd', 'prettier', stop_after_first = true },
+          yaml = { 'prettierd', 'prettier', stop_after_first = true },
+          toml = { 'taplo' },
+          python = { 'black' },
+          c = { 'clang-format' },
+          zig = {
+            lsp_format = 'first',
+          },
+        },
+      }
+    end,
     event = { 'BufWritePre' },
     cmd = { 'ConformInfo' },
-    keys = {
-      {
-        '<leader>f',
-        function()
-          require('conform').format { async = true, lsp_fallback = true }
-        end,
-        mode = '',
-        desc = '[F]ormat buffer',
-      },
-    },
-    opts = {
-      notify_on_error = false,
-      format_on_save = function(bufnr)
-        local disable_filetypes = { c = true, cpp = true }
-        return {
-          timeout_ms = 500,
-          lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
-        }
-      end,
-      formatters_by_ft = {
-        lua = { 'stylua' },
-        nix = { 'nixfmt' },
-        typescript = { 'prettierd', 'prettier', stop_after_first = true },
-        javascript = { 'prettierd', 'prettier', stop_after_first = true },
-        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
-        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
-        toml = { 'taplo' },
-      },
-    },
   },
 
   { -- Autocompletion
@@ -455,13 +476,17 @@ require('lazy').setup({
 
   -- Colorschemes
   {
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
-    init = function()
-      vim.cmd.colorscheme 'tokyonight-night'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
+    'Tsuzat/NeoSolarized.nvim',
+    lazy = false, -- make sure we load this during startup if it is your main colorscheme
+    priority = 1000, -- make sure to load this before all the other start plugins
+  },
+  {
+    'craftzdog/solarized-osaka.nvim',
+    lazy = false,
+    priority = 1000,
+    opts = {},
+    config = function()
+      vim.cmd [[colorscheme solarized-osaka]]
     end,
   },
   -- Git integrations
@@ -483,30 +508,25 @@ require('lazy').setup({
     'echasnovski/mini.nvim',
     config = function()
       -- Better Around/Inside textobjects
-      --
-      -- Examples:
-      --  - va)  - [V]isually select [A]round [)]paren
-      --  - yinq - [Y]ank [I]nside [N]ext [Q]uote
-      --  - ci'  - [C]hange [I]nside [']quote
       require('mini.ai').setup { n_lines = 500 }
-
       -- Add/delete/replace surroundings (brackets, quotes, etc.)
-      --
-      -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-      -- - sd'   - [S]urround [D]elete [']quotes
-      -- - sr)'  - [S]urround [R]eplace [)] [']
       -- require('mini.surround').setup()
-
-      local statusline = require 'mini.statusline'
-      statusline.setup { use_icons = vim.g.have_nerd_font }
 
       -- You can configure sections in the statusline by overriding their
       -- default behavior. For example, here we set the section for
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function()
-        return '%2l:%-2v'
-      end
+    end,
+  },
+  {
+    'nvim-lualine/lualine.nvim',
+    config = function()
+      require('lualine').setup {
+        options = {
+          icons_enabled = true,
+          theme = 'NeoSolarized',
+        },
+      }
     end,
   },
   -- this is only when nixos fails for some reason
@@ -541,12 +561,18 @@ require('lazy').setup({
 
       ---@diagnostic disable-next-line: missing-fields
       require('nvim-treesitter.configs').setup(opts)
+      local parser_config = require('nvim-treesitter.parsers').get_parser_configs()
+      parser_config.spec = {
+        install_info = {
+          url = '~/Documents/projects/treesitter/tree-sitter-spec', -- local path or git repo
+          files = { 'src/parser.c' },
+          requires_generate_from_grammar = true,
+        },
+      }
     end,
   },
 
   require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
@@ -578,5 +604,37 @@ require('lazy').setup({
   },
 })
 
--- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
+vim.filetype.add {
+  extension = {
+    spec = 'spec',
+  },
+}
+
+-- [[ Abbreviations]]
+-- very basic math symbols with latex like syntax for files with `spec` extension
+vim.cmd [[
+    autocmd FileType spec inoreabbrev <buffer> forall ∀
+    autocmd FileType spec inoreabbrev <buffer> exists ∃
+    autocmd FileType spec inoreabbrev <buffer> land ∧
+    autocmd FileType spec inoreabbrev <buffer> lor ∨
+    autocmd FileType spec inoreabbrev <buffer> lnot ¬
+    autocmd FileType spec inoreabbrev <buffer> to →
+    autocmd FileType spec inoreabbrev <buffer> iff ↔
+    autocmd FileType spec inoreabbrev <buffer> leq ≤
+    autocmd FileType spec inoreabbrev <buffer> geq ≥
+    autocmd FileType spec inoreabbrev <buffer> neq ≠
+    autocmd FileType spec inoreabbrev <buffer> neq ≠
+    autocmd FileType spec inoreabbrev <buffer> ZZ ℤ
+    autocmd FileType spec inoreabbrev <buffer> RR ℝ
+    autocmd FileType spec inoreabbrev <buffer> in ∈
+    autocmd FileType spec inoreabbrev <buffer> notin ∉
+    autocmd FileType spec inoreabbrev <buffer> sum ∑
+    autocmd FileType spec inoreabbrev <buffer> prod ∏
+  ]]
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'spec',
+  callback = function()
+    vim.keymap.set('i', '<C-y>', '<C-]>', { buffer = true })
+  end,
+})
