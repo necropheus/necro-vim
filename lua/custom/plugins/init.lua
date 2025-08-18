@@ -98,24 +98,6 @@ return {
       },
     },
   },
-  -- Java
-  {
-    'mfussenegger/nvim-jdtls',
-    config = function()
-      local config = {
-        cmd = { '~/.local/share/nvim/mason/bin/jdtls' },
-        root_dir = vim.fs.dirname(vim.fs.find({ 'gradlew', '.git', 'mvnw' }, { upward = true })[1]),
-      }
-      require('jdtls').start_or_attach(config)
-    end,
-  },
-  {
-    'rcasia/neotest-java',
-    ft = 'java',
-    dependencies = {
-      'mfussenegger/nvim-jdtls',
-    },
-  },
   {
     'nvim-neotest/neotest',
     dependencies = {
@@ -124,18 +106,9 @@ return {
       'antoinemadec/FixCursorHold.nvim',
       'nvim-treesitter/nvim-treesitter',
     },
-    opts = {
-      adapters = {
-        ['neotest-java'] = {},
-      },
-    },
     config = function()
       local neotest = require 'neotest'
-      neotest.setup {
-        adapters = {
-          require 'neotest-java',
-        },
-      }
+      neotest.setup {}
       vim.keymap.set('n', '<leader>tn', neotest.run.run, { desc = 'Run [T]est [F]ile' })
       vim.keymap.set('n', '<leader>tf', function()
         neotest.run.run(vim.fn.expand '%')
