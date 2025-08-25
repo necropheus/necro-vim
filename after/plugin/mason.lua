@@ -46,12 +46,15 @@ require("mason-lspconfig").setup {
         ["rust_analyzer"] = function() end,
         clangd = function() end,
         zls = function() end,
+        hls = function() end,
+        ["haskell-language-server"] = function() end,
     },
 }
 
 require("lspconfig").nil_ls.setup {}
 require("lspconfig").clangd.setup {}
 require("lspconfig").zls.setup {}
+require("lspconfig").hls.setup {}
 
 vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("lsp-attach", { clear = true }),
