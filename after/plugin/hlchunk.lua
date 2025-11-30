@@ -1,17 +1,17 @@
-require("hlchunk").setup {
-    chunk = {
-        enable = true,
-        notify = false,
-        exclude_filetypes = { opencode_terminal = true },
-    },
-    indent = {
-        enable = true,
-        notify = false,
-        exclude_filetypes = { opencode_terminal = true },
-    },
-    line_num = {
-        enable = true,
-        notify = false,
-        exclude_filetypes = { opencode_terminal = true },
-    },
-}
+-- require("hlchunk").setup {
+--     chunk = {
+--         enable = true,
+--         notify = false,
+--         exclude_filetypes = { opencode_terminal = true },
+--     },
+--     indent = {
+--         enable = true,
+--         notify = false,
+--         exclude_filetypes = { opencode_terminal = true },
+--     },
+--     line_num = {
+--         enable = true,
+--         notify = false,
+--         exclude_filetypes = { opencode_terminal = true },
+--     },
+-- }

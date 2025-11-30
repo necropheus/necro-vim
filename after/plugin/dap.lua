@@ -79,66 +79,43 @@ dapui.setup {
     },
 }
 
-dap.listeners = {
-    after = {
-        event_initialized = {
-            dapui_config = dapui.open,
-        },
-    },
-    before = {
-        event_terminated = {
-            dapui_config = dapui.close,
-        },
-        event_exited = {
-            dapui_config = dapui.close,
-        },
+dap.listeners.after.event_initialized["dapui_config"] = dapui.open
+dap.listeners.before.event_terminated["dapui_config"] = dapui.close
+dap.listeners.before.event_exited["dapui_config"] = dapui.close
+
+dap.adapters = {
+    codelldb = {
+        type = "executable",
+        command = "codelldb",
     },
 }
 
--- TODO: Check if this is needed or codelldb just works
--- dap.adapters = {
---     gdb = {
---         type = "executable",
---         command = "gdb",
---         args = {
---             "--interpreter=dap",
---             "--eval-command",
---             "set print pretty on",
---         },
---     },
---     lldb = {
---         type = "executable",
---         command = "lldb",
---     },
--- }
-
--- TODO: Check if this is needed or codelldb just works
--- dap.configurations = {
---     c = {
---         {
---             name = "Launch",
---             type = "gdb",
---             request = "launch",
---             program = function()
---                 return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/debug/", "file")
---             end,
---             cwd = "${workspaceFolder}",
---             stopAtBeginningOfMainSubprogram = false,
---         },
---     },
---     zig = {
---         {
---             name = "Launch",
---             type = "lldb",
---             request = "launch",
---             program = function()
---                 return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/zig-out/bin/", "file")
---             end,
---             cwd = "${workspaceFolder}",
---             stopAtBeginningOfMainSubprogram = false,
---         },
---     },
--- }
+dap.configurations = {
+    c = {
+        {
+            name = "Launch",
+            type = "codelldb",
+            request = "launch",
+            program = function()
+                return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/debug/", "file")
+            end,
+            cwd = "${workspaceFolder}",
+            stopOnEntry = false,
+        },
+    },
+    zig = {
+        {
+            name = "Launch",
+            type = "codelldb",
+            request = "launch",
+            program = function()
+                return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/zig-out/bin/", "file")
+            end,
+            cwd = "${workspaceFolder}",
+            stopAtBeginningOfMainSubprogram = false,
+        },
+    },
+}
 
 require("utils.keymaps").apply {
     { "n", "<F1>", dap.continue, desc = "Debug: Start/Continue" },
@@ -158,6 +135,7 @@ require("utils.keymaps").apply {
         desc = "Debug: Set Breakpoint",
     },
     { "n", "<F7>", dapui.toggle, desc = "Debug: See last session result." },
+    { "n", "<F8>", dapui.close, desc = "Debug: Close debug session." },
     {
         "n",
         "<leader>?",

@@ -10,6 +10,8 @@ require("copilot").setup {
         c = false,
         cpp = false,
         zig = false,
+        asm = false,
+        markdown = false,
     },
     suggestion = {
         auto_trigger = true,
