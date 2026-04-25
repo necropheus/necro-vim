@@ -1,10 +1,8 @@
 local M = {}
 
 function M.apply(mappings, default_opts)
-  vim.validate({
-    mappings     = { mappings, "table" },
-    default_opts = { default_opts, "table", true },
-  })
+  vim.validate("mappings", mappings, "table")
+  vim.validate("default_opts", default_opts, "table", true)
 
   local base = vim.tbl_extend("force", { noremap = true, silent = true }, default_opts or {})
 

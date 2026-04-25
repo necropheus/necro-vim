@@ -1,7 +1,7 @@
 local dap = require "dap"
-local dapui = require "dapui"
 
-dapui.setup {
+local dapui
+local dapui_config = {
     icons = { expanded = "▾", collapsed = "▸", current_frame = "*" },
     controls = {
         element = "repl",
@@ -79,9 +79,26 @@ dapui.setup {
     },
 }
 
-dap.listeners.after.event_initialized["dapui_config"] = dapui.open
-dap.listeners.before.event_terminated["dapui_config"] = dapui.close
-dap.listeners.before.event_exited["dapui_config"] = dapui.close
+local function get_dapui()
+    if not dapui then
+        dapui = require "dapui"
+        dapui.setup(dapui_config)
+    end
+
+    return dapui
+end
+
+local function close_dapui()
+    if dapui then
+        dapui.close()
+    end
+end
+
+dap.listeners.after.event_initialized["dapui_config"] = function()
+    get_dapui().open()
+end
+dap.listeners.before.event_terminated["dapui_config"] = close_dapui
+dap.listeners.before.event_exited["dapui_config"] = close_dapui
 
 dap.adapters = {
     codelldb = {
@@ -134,13 +151,20 @@ require("utils.keymaps").apply {
         end,
         desc = "Debug: Set Breakpoint",
     },
-    { "n", "<F7>", dapui.toggle, desc = "Debug: See last session result." },
-    { "n", "<F8>", dapui.close, desc = "Debug: Close debug session." },
+    {
+        "n",
+        "<F7>",
+        function()
+            get_dapui().toggle()
+        end,
+        desc = "Debug: See last session result.",
+    },
+    { "n", "<F8>", close_dapui, desc = "Debug: Close debug session." },
     {
         "n",
         "<leader>?",
         function()
-            dapui.eval(nil, { enter = true })
+            get_dapui().eval(nil, { enter = true })
         end,
     },
 }

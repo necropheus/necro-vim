@@ -24,6 +24,13 @@ local servers = {
     },
 }
 
+local standalone_servers = {
+    "nil_ls",
+    "clangd",
+    "zls",
+    "hls",
+}
+
 require("mason").setup()
 require("mason-nvim-dap").setup()
 
@@ -33,27 +40,19 @@ vim.list_extend(ensure_installed, {
 })
 
 require("mason-tool-installer").setup { ensure_installed = ensure_installed }
+
+for server_name, config in pairs(servers) do
+    vim.lsp.config(server_name, config)
+end
+
 require("mason-lspconfig").setup {
     ensure_installed = {},
-    automatic_installation = false,
-    automatic_enable = true,
-    handlers = {
-        function(server_name)
-            local server = servers[server_name] or {}
-            require("lspconfig")[server_name].setup(server)
-        end,
-        ["rust_analyzer"] = function() end,
-        clangd = function() end,
-        zls = function() end,
-        hls = function() end,
-        ["haskell-language-server"] = function() end,
-    },
+    automatic_enable = false,
 }
 
-require("lspconfig").nil_ls.setup {}
-require("lspconfig").clangd.setup {}
-require("lspconfig").zls.setup {}
-require("lspconfig").hls.setup {}
+for _, server_name in ipairs(vim.list_extend(vim.tbl_keys(servers), standalone_servers)) do
+    vim.lsp.enable(server_name)
+end
 
 vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("lsp-attach", { clear = true }),
