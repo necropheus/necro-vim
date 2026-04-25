@@ -12,7 +12,6 @@ local servers = {
             },
         },
     },
-    vtsls = {},
     lua_ls = {
         settings = {
             Lua = {
